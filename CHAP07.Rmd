@@ -1,0 +1,199 @@
+---
+title: "Chapter 7"
+author: "Alan T. Arnholt"
+date: 'Last compiled: `r format(Sys.time(), "%B %d, %Y at %X")`'
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE, fig.align = "center")
+library(tidyverse)
+bki <- read.csv("Burger_King_items.csv")
+Cereals <- read.csv("Cereals.csv")
+mod_bk <- lm(Fat.g. ~ Protein.g., data = bki)
+```
+
+**Objectives:**
+
+I.    Understand the idea behind a **best fit** line
+
+II.   Understand how $r$ helps interpret slope
+
+III.  Know what $R^2$ is
+
+IV.   Know assumptions for linear regression
+
+V.    Know how to create and interpret residual plots
+
+# Step-By-Step Example
+
+## Read in and examine the data
+
+```{r}
+nyb <- read.csv("New_York_bridges_2016.csv")
+dim(nyb)
+tcb <- read.csv("Tompkins_county_bridges_2016.csv")
+names(tcb)
+TCB <- nyb %>% 
+  filter(County == "Tompkins") %>% 
+  select(-County, -Manhattan)
+```
+
+The problem in the book evaluates 195 bridges from Tompkins county, New York. 
+
+```{r}
+ggplot(data = tcb, aes(x = AgeAtInspection, y = Condition)) + 
+  geom_point(color = "green4") + 
+  theme_bw() + 
+  labs(x = "Age At Inspection", title = "Safety score versus age at inspection") + 
+  geom_smooth(method = "lm", se = FALSE, color = "black", size = 0.5)
+```
+
+```{r}
+tcb %>% 
+  summarize(xbar = mean(AgeAtInspection), 
+            sx = sd(AgeAtInspection),
+            ybar = mean(Condition),
+            sy = sd(Condition),
+            r = cor(AgeAtInspection, Condition),
+            b1 = r*sy/sx,
+            b0 = ybar - b1*xbar)
+# or
+mod_tcb <- lm(Condition ~ AgeAtInspection, data = tcb)
+summary(mod_tcb)
+mod_tcb$coefficients
+```
+
+
+```{r}
+# Take 1000 random samples of size 195
+set.seed(3)
+n <- 1000
+b1 <- numeric(n)
+for(i in 1:n){
+DF <- sample_n(nyb, size = 195, replace = FALSE)
+mod <- lm(Condition ~ AgeAtInspection, data = DF)
+b1[i] <- mod$coefficients[2]
+}
+ep <- quantile(b1, probs = c(0.025, 0.975))
+ep
+```
+
+Note: 95% of the $b_1$ values are between `r round(ep[1],4)` and `r round(ep[2],4)`.
+
+```{r}
+data1 = data.frame(b1 = b1) # create data frame to use with ggplot
+ggplot(data = data1, aes(x = b1)) + 
+  geom_histogram(binwidth = 0.0005, fill = "lightblue", color = "black") + 
+  geom_histogram(data = subset(data1, b1 > ep[1] & b1 < ep[2]), binwidth = 0.0005, 
+   color = "black", fill = "orange") +
+  theme_bw() + 
+  geom_vline(xintercept = ep, lty = "dashed") + 
+  labs(x = expression(b[1]))
+```
+
+## Burger King
+
+Read in the `Burger_King_Items.csv` data set and store the result in `bki`.  Examine the values in `bki`.
+
+```{r}
+# Your Code Goes HERE
+
+
+
+```
+
+Create a scatter plot of Fat versus Protein.
+
+```{r}
+# Your Code Goes HERE
+
+
+
+
+```
+
+Compute the least squares estimates and write the equation of the least squares line.  Store the result of the `lm` object in `mod_bk`.
+
+```{r}
+# Your Code Goes HERE
+
+
+
+
+
+
+```
+
+The least squares line for regressing Fat onto Protein is:
+
+$$\widehat{\text{Fat}} = xxx + xxx \times \text{Protein}$$
+
+## $R^2$ --- The Variation accounted for by the Model
+
+```{r}
+e <- residuals(mod_bk)
+fat <- bki$Fat.g. - mean(bki$Fat.g.)
+values <- c(e, fat)
+type <- rep(c("Residuals", "Fat"), each = 122)
+NDF <- data.frame(type = type, values = values)
+ggplot(data = NDF, aes(x = type, y = values, fill = type)) + 
+  geom_boxplot() + 
+  theme_bw() + 
+  scale_fill_manual(values = c("green", "purple"))
+```
+
+```{r}
+1 - var(e)/var(fat)
+```
+
+# Step-By-Step Example
+
+Read in the `Cereals.csv` data set and store the data in `Cereals`.  Examine the values in `Cereals`.
+
+```{r}
+# Your Code Goes HERE
+
+
+
+```
+
+Find the least squares estimates $b_0$ and $b_1$ from regressing `calories` on `sugars`.
+
+```{r}
+# Your Code Goes HERE
+
+
+
+```
+
+Write the least squares regression equation for regressing `calories` onto `sugars`.
+
+$$\widehat{\text{calories}} = xxx + xxx \times\text{sugars}$$
+
+Create a residuals versus fitted calories plot.
+
+```{r}
+mod_cereal <- lm(calories ~ sugars, data = Cereals)
+library(broom)
+NS <- augment(mod_cereal)
+ggplot(data = NS, aes(x = .fitted, y = .resid)) + 
+  geom_point(color = "blue") + 
+  theme_bw() + 
+  labs(x = "Predicted Calories", y = "Residuals") + 
+  geom_hline(yintercept = 0, lty = "dashed")
+```
+
+# Question # 4 - Homework
+
+```{r}
+library(readxl)
+chap07ques04 <- read_xlsx("chap07ques04.xlsx")
+knitr::kable(chap07ques04)
+mod_lm <- lm(`Sales_(in_$1000)` ~ `Number_of_Sales_People_Working`, data = chap07ques04)
+summary(mod_lm)
+predict(mod_lm, newdata = data.frame(`Number_of_Sales_People_Working` = 18))
+```
+
+
+
